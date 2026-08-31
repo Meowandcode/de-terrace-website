@@ -1,9 +1,12 @@
 {
+  "framework": null,
   "buildCommand": "npm run build",
+  "outputDirectory": ".output/public",
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/api/index"
     }
   ]
 }
