@@ -66,11 +66,11 @@ export function MenuDetail({ category, onOrder }: Props) {
             onClick={handleOrder}
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
-            className="cursor-hover-target min-w-[9rem] bg-coffee-dark px-5 py-4 text-left text-lg font-light text-cream transition-colors duration-300 md:min-w-[11rem] md:px-7 md:py-6 md:text-2xl"
+            className="cursor-hover-target min-w-36 bg-coffee-dark px-5 py-4 text-left text-lg font-light text-cream transition-colors duration-300 md:min-w-44 md:px-7 md:py-6 md:text-2xl"
           >
             {orderLabel}
           </button>
-          <div className="flex min-w-[4.5rem] items-center justify-center bg-cream px-4 py-4 text-lg font-light text-coffee-dark md:min-w-[6rem] md:py-6 md:text-2xl">
+          <div className="flex min-w-18 items-center justify-center bg-cream px-4 py-4 text-lg font-light text-coffee-dark md:min-w-24 md:py-6 md:text-2xl">
             {selected.price}
           </div>
         </div>

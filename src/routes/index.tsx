@@ -15,11 +15,10 @@ import {
   type MenuItem,
 } from "@/lib/deterrace";
 
-import cup from "@/assets/cup-top2.png";
+import cup from "@/assets/cup-top2.webp";
 import doorClosed from "@/assets/door-closed.jpg";
 import doorOpen from "@/assets/door-open.jpg";
 import interior from "@/assets/interior.jpg";
-
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -122,6 +121,19 @@ function Index() {
     });
   }, []);
 
+  const updateCartQty = useCallback((id: string, qty: number) => {
+    setCart((prev) => {
+      if (qty <= 0) {
+        return prev.filter((line) => line.id !== id);
+      }
+      return prev.map((line) => (line.id === id ? { ...line, qty } : line));
+    });
+  }, []);
+
+  const removeFromCart = useCallback((id: string) => {
+    setCart((prev) => prev.filter((line) => line.id !== id));
+  }, []);
+
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
@@ -208,11 +220,21 @@ function Index() {
               : "sticky top-0 flex h-screen w-full items-center justify-center overflow-hidden opacity-0 origin-center"
           }
         >
-          <img
-            src={interior}
-            alt="Warm interior of De Terrace with string lights and hanging plants"
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <div className="absolute inset-0">
+            <video
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="none"
+              poster="/images/hero-poster.webp"
+              aria-hidden="true"
+            >
+              <source src="/videos/hero.webm" type="video/webm" />
+              <source src="/videos/hero.mp4" type="video/mp4" />
+            </video>
+          </div>
           <div className="absolute inset-0 bg-coffee-dark/50" />
           <div className="relative flex flex-col items-center px-6 text-center">
             <h1 className="animate-dt-rise text-[13vw] font-light leading-none tracking-tight text-cream md:text-[9vw]">
@@ -258,7 +280,7 @@ function Index() {
         </section>
 
         {/* Section 8 — Order list */}
-        <OrderSection lines={cart} />
+        <OrderSection lines={cart} onUpdateQty={updateCartQty} onRemove={removeFromCart} />
 
         {/* Section 9 — Visit */}
         <section className="sticky top-0 flex h-screen w-full items-center overflow-hidden bg-cream px-8 md:px-16">

@@ -2,7 +2,15 @@ import { useState } from "react";
 
 import { buildWhatsappOrder, type CartLine } from "@/lib/deterrace";
 
-export function OrderSection({ lines }: { lines: CartLine[] }) {
+export function OrderSection({
+  lines,
+  onUpdateQty,
+  onRemove,
+}: {
+  lines: CartLine[];
+  onUpdateQty: (id: string, qty: number) => void;
+  onRemove: (id: string) => void;
+}) {
   const [name, setName] = useState("");
   const total = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
 
@@ -28,11 +36,31 @@ export function OrderSection({ lines }: { lines: CartLine[] }) {
             <li className="text-cream/50">Belum ada pesanan — pilih menu lalu klik Order.</li>
           )}
           {lines.map((l) => (
-            <li key={l.id} className="flex items-baseline justify-between gap-6">
-              <span>
-                {l.name} {l.qty}
-              </span>
-              <span>{l.price * l.qty}</span>
+            <li key={l.id} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label={`Kurangi ${l.name}`}
+                  onClick={() => onUpdateQty(l.id, l.qty - 1)}
+                  className="cursor-hover-target h-6 w-6 rounded-full border border-cream/60 text-sm text-cream transition-opacity duration-300 hover:opacity-70"
+                >
+                  −
+                </button>
+                <span>
+                  {l.name} x{l.qty}
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <span>{l.price * l.qty}</span>
+                <button
+                  type="button"
+                  aria-label={`Cancel ${l.name}`}
+                  onClick={() => onRemove(l.id)}
+                  className="cursor-hover-target text-xs uppercase tracking-[0.2em] text-cream/70 transition-opacity duration-300 hover:text-cream"
+                >
+                  Cancel
+                </button>
+              </div>
             </li>
           ))}
         </ul>
