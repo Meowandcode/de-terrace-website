@@ -31,7 +31,8 @@ import bananaCakeImg from "@/assets/menu/banana-cake.webp";
 export const CAFE = {
   /** International format, no "+" — e.g. 6281234567890 */
   whatsapp: "6289510830568",
-  address: "Jl. Trunojoyo Jl. Kauman No.42, Sawahan Cantian, Kepatihan, Kec. Kaliwates, Kabupaten Jember, Jawa Timur 68131",
+  address:
+    "Jl. Trunojoyo Jl. Kauman No.42, Sawahan Cantian, Kepatihan, Kec. Kaliwates, Kabupaten Jember, Jawa Timur 68131",
   email: "rickyduaproduction@gmail.com",
   instagram: "ricky_dua_",
 };
@@ -41,11 +42,14 @@ export const emailUrl = `mailto:${CAFE.email}`;
 export const instagramUrl = `https://instagram.com/${CAFE.instagram}`;
 export const whatsappUrl = `https://wa.me/${CAFE.whatsapp}`;
 
+export const DEFAULT_MENU_STOCK = 10;
+
 export type MenuItem = {
   id: string;
   name: string;
   price: number;
   image: string;
+  stock?: number;
 };
 
 export type MenuCategory = {
@@ -53,6 +57,15 @@ export type MenuCategory = {
   title: string;
   items: MenuItem[];
 };
+
+export function createDefaultStockMap() {
+  return MENU.reduce<Record<string, number>>((acc, category) => {
+    category.items.forEach((item) => {
+      acc[item.id] = DEFAULT_MENU_STOCK;
+    });
+    return acc;
+  }, {});
+}
 
 export const MENU: MenuCategory[] = [
   {

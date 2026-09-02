@@ -3,16 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import idle from "@/assets/cursor-idle.png";
 import hover from "@/assets/cursor-hover.png";
 
-/** Coffee-cup cursor. Hidden on touch devices. */
-export function CustomCursor() {
+/** Coffee-cup cursor. Hidden on touch devices unless explicitly forced. */
+export function CustomCursor({ force = false }: { force?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
   const [visible, setVisible] = useState(false);
   const [fine, setFine] = useState(false);
 
   useEffect(() => {
-    setFine(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
-  }, []);
+    setFine(force || window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+  }, [force]);
 
   useEffect(() => {
     if (!fine) return;

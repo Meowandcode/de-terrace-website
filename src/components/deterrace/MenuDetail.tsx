@@ -1,20 +1,30 @@
 import { useState } from "react";
 
-import type { MenuCategory, MenuItem } from "@/lib/deterrace";
+import { DEFAULT_MENU_STOCK, type MenuCategory, type MenuItem } from "@/lib/deterrace";
 
 type Props = {
   category: MenuCategory;
   onOrder: (item: MenuItem) => void;
+  stockMap: Record<string, number>;
 };
 
-export function MenuDetail({ category, onOrder }: Props) {
+export function MenuDetail({ category, onOrder, stockMap }: Props) {
   const [selected, setSelected] = useState<MenuItem>(category.items[0]!);
   const [hovering, setHovering] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const orderLabel = added ? "Masuk Keranjang" : hovering ? "Klik to order" : "Order";
+  const selectedStock = stockMap[selected.id] ?? DEFAULT_MENU_STOCK;
+  const isSoldOut = selectedStock <= 0;
+  const orderLabel = isSoldOut
+    ? "Habis"
+    : added
+      ? "Masuk Keranjang"
+      : hovering
+        ? "Klik to order"
+        : "Order";
 
   const handleOrder = () => {
+    if (isSoldOut) return;
     onOrder(selected);
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1600);
@@ -35,20 +45,30 @@ export function MenuDetail({ category, onOrder }: Props) {
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-4 md:mt-16 md:gap-y-7">
           {[left, right].map((col, ci) => (
             <ul key={ci} className="space-y-4 md:space-y-7">
-              {col.map((item) => (
-                <li key={item.id}>
-                  <button
-                    onClick={() => setSelected(item)}
-                    className={`cursor-hover-target text-left text-sm transition-opacity duration-300 md:text-base ${
-                      selected.id === item.id
-                        ? "text-coffee-dark opacity-100"
-                        : "text-coffee-dark/70 hover:opacity-100"
-                    }`}
-                  >
-                    {item.name}
-                  </button>
-                </li>
-              ))}
+              {col.map((item) => {
+                const itemStock = stockMap[item.id] ?? DEFAULT_MENU_STOCK;
+                const soldOut = itemStock <= 0;
+
+                return (
+                  <li key={item.id} className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => setSelected(item)}
+                      className={`cursor-hover-target text-left text-sm transition-opacity duration-300 md:text-base ${
+                        selected.id === item.id
+                          ? "text-coffee-dark opacity-100"
+                          : "text-coffee-dark/70 hover:opacity-100"
+                      } ${soldOut ? "line-through opacity-60" : ""}`}
+                    >
+                      {item.name}
+                    </button>
+                    {soldOut && (
+                      <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-coffee-dark/60">
+                        Kosong
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           ))}
         </div>
@@ -66,7 +86,8 @@ export function MenuDetail({ category, onOrder }: Props) {
             onClick={handleOrder}
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
-            className="cursor-hover-target min-w-36 bg-coffee-dark px-5 py-4 text-left text-lg font-light text-cream transition-colors duration-300 md:min-w-44 md:px-7 md:py-6 md:text-2xl"
+            disabled={isSoldOut}
+            className="cursor-hover-target min-w-36 bg-coffee-dark px-5 py-4 text-left text-lg font-light text-cream transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 md:min-w-44 md:px-7 md:py-6 md:text-2xl"
           >
             {orderLabel}
           </button>

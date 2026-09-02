@@ -7,6 +7,7 @@ import { MenuDetail } from "@/components/deterrace/MenuDetail";
 import { OrderSection } from "@/components/deterrace/OrderSection";
 import {
   MENU,
+  createDefaultStockMap,
   emailUrl,
   instagramUrl,
   mapsUrl,
@@ -14,6 +15,7 @@ import {
   type CartLine,
   type MenuItem,
 } from "@/lib/deterrace";
+import { fetchMenuStock } from "@/lib/supabase";
 
 import cup from "@/assets/cup-top2.webp";
 import doorClosed from "@/assets/door-closed.jpg";
@@ -47,6 +49,7 @@ function Index() {
   const [stage, setStage] = useState<Stage>("loading");
   const [doorHover, setDoorHover] = useState(false);
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [menuStock, setMenuStock] = useState<Record<string, number>>(() => createDefaultStockMap());
   const lenisRef = useRef<{ destroy: () => void } | null>(null);
 
   /* Loading screen: spin the cup while the heavy photos preload. */
@@ -106,29 +109,76 @@ function Index() {
     };
   }, [intro]);
 
+  useEffect(() => {
+    let active = true;
+
+    fetchMenuStock()
+      .then((rows) => {
+        if (!active) return;
+        const next = createDefaultStockMap();
+        rows.forEach((row) => {
+          next[row.menu_id] = row.stock;
+        });
+        setMenuStock(next);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMenuStock(createDefaultStockMap());
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const goInside = useCallback(() => {
     setStage("entering");
     window.setTimeout(() => setStage("inside"), 1500);
   }, []);
 
-  const addToCart = useCallback((item: MenuItem) => {
-    setCart((prev) => {
-      const found = prev.find((l) => l.id === item.id);
-      if (found) {
-        return prev.map((l) => (l.id === item.id ? { ...l, qty: l.qty + 1 } : l));
-      }
-      return [...prev, { id: item.id, name: item.name, price: item.price, qty: 1 }];
-    });
-  }, []);
+  const addToCart = useCallback(
+    (item: MenuItem) => {
+      const maxStock = menuStock[item.id] ?? 0;
+      if (maxStock <= 0) return;
 
-  const updateCartQty = useCallback((id: string, qty: number) => {
-    setCart((prev) => {
-      if (qty <= 0) {
-        return prev.filter((line) => line.id !== id);
-      }
-      return prev.map((line) => (line.id === id ? { ...line, qty } : line));
-    });
-  }, []);
+      setCart((prev) => {
+        const currentQty = prev.reduce(
+          (sum, line) => (line.id === item.id ? sum + line.qty : sum),
+          0,
+        );
+        if (currentQty >= maxStock) return prev;
+
+        const found = prev.find((l) => l.id === item.id);
+        if (found) {
+          return prev.map((l) => (l.id === item.id ? { ...l, qty: l.qty + 1 } : l));
+        }
+        return [...prev, { id: item.id, name: item.name, price: item.price, qty: 1 }];
+      });
+    },
+    [menuStock],
+  );
+
+  const updateCartQty = useCallback(
+    (id: string, qty: number) => {
+      const maxStock = menuStock[id] ?? 0;
+
+      setCart((prev) => {
+        if (qty <= 0) {
+          return prev.filter((line) => line.id !== id);
+        }
+
+        const currentLine = prev.find((line) => line.id === id);
+        const nextQty = Math.min(qty, maxStock);
+
+        if (currentLine && nextQty === currentLine.qty && qty > maxStock) {
+          return prev;
+        }
+
+        return prev.map((line) => (line.id === id ? { ...line, qty: nextQty } : line));
+      });
+    },
+    [menuStock],
+  );
 
   const removeFromCart = useCallback((id: string) => {
     setCart((prev) => prev.filter((line) => line.id !== id));
@@ -266,7 +316,7 @@ function Index() {
 
         {/* Section 6 — Menu detail, one per category */}
         {MENU.map((cat) => (
-          <MenuDetail key={cat.id} category={cat} onOrder={addToCart} />
+          <MenuDetail key={cat.id} category={cat} onOrder={addToCart} stockMap={menuStock} />
         ))}
 
         {/* Section 7 — Brew your moment */}
@@ -280,7 +330,12 @@ function Index() {
         </section>
 
         {/* Section 8 — Order list */}
-        <OrderSection lines={cart} onUpdateQty={updateCartQty} onRemove={removeFromCart} />
+        <OrderSection
+          lines={cart}
+          stockMap={menuStock}
+          onUpdateQty={updateCartQty}
+          onRemove={removeFromCart}
+        />
 
         {/* Section 9 — Visit */}
         <section className="sticky top-0 flex h-screen w-full items-center overflow-hidden bg-cream px-8 md:px-16">
