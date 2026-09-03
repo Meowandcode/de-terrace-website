@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 
 import { CustomCursor } from "@/components/deterrace/CustomCursor";
 import { MENU } from "@/lib/deterrace";
@@ -39,6 +39,7 @@ function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savingStockId, setSavingStockId] = useState<string | null>(null);
+  const [stockInputs, setStockInputs] = useState<Record<string, string>>({});
 
   const loadMenuInventory = useCallback(async () => {
     if (!isSupabaseConfigured()) {
@@ -51,6 +52,7 @@ function AdminDashboard() {
     try {
       const rows = await fetchMenuStock();
       setMenuInventory(rows);
+      setStockInputs(Object.fromEntries(rows.map((row) => [row.menu_id, String(row.stock)])));
     } catch (err) {
       console.error("Failed to load menu inventory:", err);
     }
@@ -109,16 +111,14 @@ function AdminDashboard() {
     }
   };
 
-  const menuRows = MENU.flatMap((category) =>
-    category.items.map((item) => {
-      const currentStock = menuInventory.find((row) => row.menu_id === item.id)?.stock ?? 0;
-      return {
-        menuId: item.id,
-        itemName: item.name,
-        stock: currentStock,
-      };
-    }),
-  );
+  const menuGroups = MENU.map((category) => ({
+    ...category,
+    rows: category.items.map((item) => ({
+      menuId: item.id,
+      itemName: item.name,
+      stock: menuInventory.find((row) => row.menu_id === item.id)?.stock ?? 0,
+    })),
+  }));
 
   const handleStockUpdate = async (menuId: string, itemName: string, stock: number) => {
     setSavingStockId(menuId);
@@ -133,6 +133,7 @@ function AdminDashboard() {
         }
         return [...prev, updated];
       });
+      setStockInputs((prev) => ({ ...prev, [menuId]: String(updated.stock) }));
     } catch (err) {
       console.error("Failed to update menu stock:", err);
       setError("Gagal memperbarui stok menu.");
@@ -173,7 +174,10 @@ function AdminDashboard() {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => void loadOrders()}
+                onClick={() => {
+                  void loadMenuInventory();
+                  void loadOrders();
+                }}
                 className="rounded-full border border-[#2d2019] px-4 py-2 text-sm font-medium text-[#2d2019] transition-opacity hover:opacity-80"
               >
                 Refresh data
@@ -202,41 +206,71 @@ function AdminDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {menuRows.map((row) => (
-                <div
-                  key={row.menuId}
-                  className="rounded-2xl border border-[#efd9ca] bg-[#fffaf6] p-4"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-[#2b221f]">{row.itemName}</p>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-[#7a5a45]">
-                      {row.stock <= 0 ? "Habis" : "Ready"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={row.stock}
-                      onChange={(event) => {
-                        const nextValue = Number(event.target.value || 0);
-                        void handleStockUpdate(row.menuId, row.itemName, nextValue);
-                      }}
-                      className="w-full rounded-full border border-[#d7bca6] bg-white px-3 py-2 text-sm text-[#2b221f] outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => void handleStockUpdate(row.menuId, row.itemName, row.stock)}
-                      disabled={savingStockId === row.menuId}
-                      className="rounded-full bg-[#2d2019] px-3 py-2 text-xs font-medium uppercase tracking-[0.15em] text-white disabled:opacity-50"
-                    >
-                      {savingStockId === row.menuId ? "..." : "Save"}
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="overflow-x-auto rounded-2xl border border-[#efd9ca]">
+              <table className="min-w-full text-left text-sm text-[#2b221f]">
+                <thead className="bg-[#f8f1ec] text-[#614a3c]">
+                  <tr>
+                    <th className="px-4 py-3 font-medium">Menu</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">Jumlah stok tersedia</th>
+                    <th className="px-4 py-3 font-medium">Konfirmasi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {menuGroups.map((category) => (
+                    <Fragment key={category.id}>
+                      <tr className="border-t-2 border-[#d7bca6] bg-[#f8f1ec]">
+                        <th
+                          colSpan={4}
+                          className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.25em] text-[#614a3c]"
+                        >
+                          {category.title}
+                        </th>
+                      </tr>
+                      {category.rows.map((row) => (
+                        <tr key={row.menuId} className="border-t border-[#f0e6de]">
+                          <td className="px-4 py-3 font-medium">{row.itemName}</td>
+                          <td className="px-4 py-3">
+                            <span className={row.stock <= 0 ? "text-red-700" : "text-green-700"}>
+                              {row.stock <= 0 ? "Kosong" : "Tersedia"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="number"
+                              min={0}
+                              value={stockInputs[row.menuId] ?? String(row.stock)}
+                              onChange={(event) =>
+                                setStockInputs((prev) => ({
+                                  ...prev,
+                                  [row.menuId]: event.target.value,
+                                }))
+                              }
+                              className="w-32 rounded-full border border-[#d7bca6] bg-white px-3 py-2 text-sm text-[#2b221f] outline-none"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleStockUpdate(
+                                  row.menuId,
+                                  row.itemName,
+                                  Number(stockInputs[row.menuId] ?? row.stock),
+                                )
+                              }
+                              disabled={savingStockId === row.menuId}
+                              className="rounded-full bg-[#2d2019] px-3 py-2 text-xs font-medium uppercase tracking-[0.15em] text-white disabled:opacity-50"
+                            >
+                              {savingStockId === row.menuId ? "..." : "Simpan"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </section>
 

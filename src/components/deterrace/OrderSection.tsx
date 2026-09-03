@@ -40,7 +40,8 @@ export function OrderSection({
       setStatusMessage("Pesanan berhasil disimpan ke database Supabase.");
     } catch (error) {
       console.error("Failed to save order to Supabase:", error);
-      setStatusMessage("Gagal menyimpan ke Supabase, tapi order masih bisa dikirim via WhatsApp.");
+      const detail = error instanceof Error ? ` (${error.message})` : "";
+      setStatusMessage(`Gagal menyimpan order ke Supabase${detail}. WhatsApp tetap dibuka.`);
     } finally {
       setIsSubmitting(false);
       window.open(orderUrl, "_blank", "noopener,noreferrer");
