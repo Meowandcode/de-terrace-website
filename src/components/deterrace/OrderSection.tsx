@@ -26,7 +26,7 @@ export function OrderSection({
 
     if (!isSupabaseConfigured()) {
       setStatusMessage(
-        "Supabase belum terhubung — WhatsApp tetap dibuka, tapi order belum tersimpan.",
+        "Belum terhubung — WhatsApp tetap dibuka, tapi order belum tersimpan.",
       );
       window.open(orderUrl, "_blank", "noopener,noreferrer");
       return;
@@ -37,11 +37,11 @@ export function OrderSection({
 
     try {
       await saveOrderToSupabase(name, lines, total);
-      setStatusMessage("Pesanan berhasil disimpan ke database Supabase.");
+      setStatusMessage("Pesanan berhasil disimpan.");
     } catch (error) {
-      console.error("Failed to save order to Supabase:", error);
+      console.error("Failed to save order:", error);
       const detail = error instanceof Error ? ` (${error.message})` : "";
-      setStatusMessage(`Gagal menyimpan order ke Supabase${detail}. WhatsApp tetap dibuka.`);
+      setStatusMessage(`Gagal menyimpan order${detail}. WhatsApp tetap dibuka.`);
     } finally {
       setIsSubmitting(false);
       window.open(orderUrl, "_blank", "noopener,noreferrer");
@@ -67,7 +67,7 @@ export function OrderSection({
 
         <ul className="mt-6 space-y-1 text-sm text-cream/85 md:text-base">
           {lines.length === 0 && (
-            <li className="text-cream/50">Belum ada pesanan — pilih menu lalu klik Order.</li>
+            <li className="text-cream/50">Belum ada pesanan. pilih menu lalu klik Order.</li>
           )}
           {lines.map((l) => {
             const stock = stockMap[l.id] ?? DEFAULT_MENU_STOCK;
